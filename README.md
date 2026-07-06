@@ -30,6 +30,7 @@ And the following ways of notifying backup results are supported.
 
 - Ping (send on completion, start, success, or failure)
 - Mail (SMTP based, send on success and on failure)
+- Telegram (Bot API based, send on start, success, or failure)
 
 <br>
 
@@ -491,6 +492,47 @@ docker run --rm -it -e MAIL_SMTP_VARIABLES='<your smtp variables>' ttionya/vault
 # Or
 
 docker run --rm -it -e MAIL_SMTP_VARIABLES='<your smtp variables>' -e MAIL_TO='<mail send to>' ttionya/vaultwarden-backup:latest mail
+```
+
+<br>
+
+
+
+### Telegram
+
+| Environment Variable | Default Value | Description |
+| --- | --- | --- |
+| TG_ENABLE | `FALSE` | Enable sending Telegram notifications. |
+| TG_BOT_TOKEN | | Telegram bot token. |
+| TG_CHAT_ID | | Telegram chat ID to receive notifications. |
+| TG_WHEN_START | `FALSE` | Send a Telegram message when the backup starts. |
+| TG_WHEN_SUCCESS | `TRUE` | Send a Telegram message when the backup completes successfully. |
+| TG_WHEN_FAILURE | `TRUE` | Send a Telegram message when the backup fails. |
+| TG_MESSAGE_THREAD_ID | | Telegram forum topic ID. Optional. |
+| TG_PARSE_MODE | | Telegram parse mode such as `MarkdownV2` or `HTML`. Optional. |
+| TG_SERVER | `https://api.telegram.org` | Telegram Bot API server. Useful for proxies or self-hosted Bot API endpoints. |
+
+When enabled, the tool sends messages through the Telegram Bot API `sendMessage` endpoint. The message body is composed of the notification subject and content.
+
+<br>
+
+
+
+### Telegram Test
+
+You can use the following command to test Telegram sending. We will add the `-v` flag to display detailed information.
+
+```shell
+docker run --rm -it \
+  -e TG_BOT_TOKEN='<your telegram bot token>' \
+  -e TG_CHAT_ID='<your telegram chat id>' \
+  ttionya/vaultwarden-backup:latest tg
+
+# Or
+
+docker run --rm -it \
+  -e TG_BOT_TOKEN='<your telegram bot token>' \
+  ttionya/vaultwarden-backup:latest tg <telegram chat id>
 ```
 
 <br>

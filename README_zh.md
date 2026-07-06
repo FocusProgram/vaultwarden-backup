@@ -30,6 +30,7 @@
 
 - Ping (完成，开始，成功或失败时发送)
 - Mail (基于 SMTP，成功时和失败时都会发送)
+- Telegram (基于 Bot API，开始、成功或失败时发送)
 
 <br>
 
@@ -488,6 +489,47 @@ docker run --rm -it -e MAIL_SMTP_VARIABLES='<your smtp variables>' ttionya/vault
 # Or
 
 docker run --rm -it -e MAIL_SMTP_VARIABLES='<your smtp variables>' -e MAIL_TO='<mail send to>' ttionya/vaultwarden-backup:latest mail
+```
+
+<br>
+
+
+
+### Telegram
+
+| 环境变量 | 默认值 | 描述 |
+| --- | --- | --- |
+| TG_ENABLE | `FALSE` | 启用 Telegram 通知发送 |
+| TG_BOT_TOKEN | | Telegram 机器人 Token |
+| TG_CHAT_ID | | 接收通知的 Telegram Chat ID |
+| TG_WHEN_START | `FALSE` | 备份开始时发送 Telegram 消息 |
+| TG_WHEN_SUCCESS | `TRUE` | 备份成功时发送 Telegram 消息 |
+| TG_WHEN_FAILURE | `TRUE` | 备份失败时发送 Telegram 消息 |
+| TG_MESSAGE_THREAD_ID | | Telegram 论坛主题 ID，可选 |
+| TG_PARSE_MODE | | Telegram 解析模式，如 `MarkdownV2` 或 `HTML`，可选 |
+| TG_SERVER | `https://api.telegram.org` | Telegram Bot API 服务地址，可用于代理或自建 Bot API |
+
+启用后，工具会通过 Telegram Bot API 的 `sendMessage` 接口发送消息，消息正文由通知标题和内容组成。
+
+<br>
+
+
+
+### Telegram 发送测试
+
+你可以使用下面的命令测试 Telegram 发送功能。我们会增加 `-v` 标志以显示详细信息。
+
+```shell
+docker run --rm -it \
+  -e TG_BOT_TOKEN='<your telegram bot token>' \
+  -e TG_CHAT_ID='<your telegram chat id>' \
+  ttionya/vaultwarden-backup:latest tg
+
+# Or
+
+docker run --rm -it \
+  -e TG_BOT_TOKEN='<your telegram bot token>' \
+  ttionya/vaultwarden-backup:latest tg <telegram chat id>
 ```
 
 <br>

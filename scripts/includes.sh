@@ -153,6 +153,50 @@ function send_mail() {
 }
 
 ########################################
+# Send Telegram notification by Bot API.
+# Arguments:
+#     telegram subject
+#     telegram content
+# Outputs:
+#     send telegram result
+########################################
+function send_tg() {
+    local TG_VERBOSE_FLAG=""
+    local TG_API_URL="${TG_SERVER}/bot${TG_BOT_TOKEN}/sendMessage"
+    local TG_TEXT="$1"$'\n'"$2"
+    local TG_DEBUG_COMMAND=""
+    local -a CURL_COMMAND=(curl -m 15 --retry 10 --retry-delay 1 -o /dev/null -s -X POST)
+
+    if [[ "${TG_DEBUG}" == "TRUE" ]]; then
+        TG_VERBOSE_FLAG="-v"
+    fi
+
+    if [[ -n "${TG_VERBOSE_FLAG}" ]]; then
+        CURL_COMMAND+=("${TG_VERBOSE_FLAG}")
+    fi
+    CURL_COMMAND+=(--data-urlencode "chat_id=${TG_CHAT_ID}")
+    CURL_COMMAND+=(--data-urlencode "text=${TG_TEXT}")
+    if [[ -n "${TG_MESSAGE_THREAD_ID}" ]]; then
+        CURL_COMMAND+=(--data-urlencode "message_thread_id=${TG_MESSAGE_THREAD_ID}")
+    fi
+    if [[ -n "${TG_PARSE_MODE}" ]]; then
+        CURL_COMMAND+=(--data-urlencode "parse_mode=${TG_PARSE_MODE}")
+    fi
+
+    if [[ "${TG_DEBUG}" == "TRUE" ]]; then
+        printf -v TG_DEBUG_COMMAND '%q ' "${CURL_COMMAND[@]}" "${TG_API_URL}"
+        color yellow "curl command: ${TG_DEBUG_COMMAND}"
+    fi
+
+    "${CURL_COMMAND[@]}" "${TG_API_URL}"
+    if [[ $? != 0 ]]; then
+        color red "telegram notification sending has failed"
+    else
+        color blue "telegram notification has been sent successfully"
+    fi
+}
+
+########################################
 # Send health check or notification ping.
 # Arguments:
 #     ping status (completion / start / success / failure)
@@ -209,6 +253,10 @@ function send_notification() {
 
     case "$1" in
         start)
+            # telegram
+            if [[ "${TG_ENABLE}" == "TRUE" && "${TG_WHEN_START}" == "TRUE" ]]; then
+                send_tg "${SUBJECT_START}" "$2"
+            fi
             # ping
             send_ping "start" "${SUBJECT_START}" "$2"
             ;;
@@ -216,6 +264,10 @@ function send_notification() {
             # mail
             if [[ "${MAIL_SMTP_ENABLE}" == "TRUE" && "${MAIL_WHEN_SUCCESS}" == "TRUE" ]]; then
                 send_mail "${SUBJECT_SUCCESS}" "$2"
+            fi
+            # telegram
+            if [[ "${TG_ENABLE}" == "TRUE" && "${TG_WHEN_SUCCESS}" == "TRUE" ]]; then
+                send_tg "${SUBJECT_SUCCESS}" "$2"
             fi
             # ping
             send_ping "success" "${SUBJECT_SUCCESS}" "$2"
@@ -225,6 +277,10 @@ function send_notification() {
             # mail
             if [[ "${MAIL_SMTP_ENABLE}" == "TRUE" && "${MAIL_WHEN_FAILURE}" == "TRUE" ]]; then
                 send_mail "${SUBJECT_FAILURE}" "$2"
+            fi
+            # telegram
+            if [[ "${TG_ENABLE}" == "TRUE" && "${TG_WHEN_FAILURE}" == "TRUE" ]]; then
+                send_tg "${SUBJECT_FAILURE}" "$2"
             fi
             # ping
             send_ping "failure" "${SUBJECT_FAILURE}" "$2"
@@ -344,6 +400,7 @@ function init_env() {
     init_env_display
     init_env_ping
     init_env_mail
+    init_env_tg
 
     # CRON
     get_env CRON
@@ -459,6 +516,20 @@ function init_env() {
                 color yellow "MAIL_MESSAGE_ID: auto generate"
             fi
         fi
+    fi
+    color yellow "TG_ENABLE: ${TG_ENABLE}"
+    if [[ "${TG_ENABLE}" == "TRUE" ]]; then
+        color yellow "TG_CHAT_ID: ${TG_CHAT_ID}"
+        color yellow "TG_WHEN_START: ${TG_WHEN_START}"
+        color yellow "TG_WHEN_SUCCESS: ${TG_WHEN_SUCCESS}"
+        color yellow "TG_WHEN_FAILURE: ${TG_WHEN_FAILURE}"
+        if [[ -n "${TG_MESSAGE_THREAD_ID}" ]]; then
+            color yellow "TG_MESSAGE_THREAD_ID: ${TG_MESSAGE_THREAD_ID}"
+        fi
+        if [[ -n "${TG_PARSE_MODE}" ]]; then
+            color yellow "TG_PARSE_MODE: ${TG_PARSE_MODE}"
+        fi
+        color yellow "TG_SERVER: ${TG_SERVER}"
     fi
     color yellow "TIMEZONE: ${TIMEZONE}"
     color yellow "DISPLAY_NAME: ${DISPLAY_NAME}"
@@ -652,4 +723,55 @@ function init_env_mail() {
     else
         MAIL_PARENT_MESSAGE_ID=""
     fi
+}
+
+function init_env_tg() {
+    # TG_ENABLE
+    # TG_BOT_TOKEN
+    # TG_CHAT_ID
+    get_env TG_ENABLE
+    get_env TG_BOT_TOKEN
+    get_env TG_CHAT_ID
+    if [[ "${TG_ENABLE^^}" == "TRUE" && -n "${TG_BOT_TOKEN}" && -n "${TG_CHAT_ID}" ]]; then
+        TG_ENABLE="TRUE"
+    else
+        TG_ENABLE="FALSE"
+    fi
+
+    # TG_SERVER
+    get_env TG_SERVER
+    TG_SERVER="${TG_SERVER:-"https://api.telegram.org"}"
+    TG_SERVER="${TG_SERVER%/}"
+
+    # TG_WHEN_START
+    get_env TG_WHEN_START
+    if [[ "${TG_WHEN_START^^}" == "TRUE" ]]; then
+        TG_WHEN_START="TRUE"
+    else
+        TG_WHEN_START="FALSE"
+    fi
+
+    # TG_WHEN_SUCCESS
+    get_env TG_WHEN_SUCCESS
+    if [[ "${TG_WHEN_SUCCESS^^}" == "FALSE" ]]; then
+        TG_WHEN_SUCCESS="FALSE"
+    else
+        TG_WHEN_SUCCESS="TRUE"
+    fi
+
+    # TG_WHEN_FAILURE
+    get_env TG_WHEN_FAILURE
+    if [[ "${TG_WHEN_FAILURE^^}" == "FALSE" ]]; then
+        TG_WHEN_FAILURE="FALSE"
+    else
+        TG_WHEN_FAILURE="TRUE"
+    fi
+
+    # TG_MESSAGE_THREAD_ID
+    get_env TG_MESSAGE_THREAD_ID
+    TG_MESSAGE_THREAD_ID="${TG_MESSAGE_THREAD_ID:-""}"
+
+    # TG_PARSE_MODE
+    get_env TG_PARSE_MODE
+    TG_PARSE_MODE="${TG_PARSE_MODE:-""}"
 }

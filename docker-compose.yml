@@ -40,6 +40,15 @@ services:
     #   MAIL_WHEN_SUCCESS: 'TRUE'
     #   MAIL_WHEN_FAILURE: 'TRUE'
     #   MAIL_FORCE_THREAD: 'FALSE'
+    #   TG_ENABLE: 'FALSE'
+    #   TG_BOT_TOKEN: ''
+    #   TG_CHAT_ID: ''
+    #   TG_WHEN_START: 'FALSE'
+    #   TG_WHEN_SUCCESS: 'TRUE'
+    #   TG_WHEN_FAILURE: 'TRUE'
+    #   TG_MESSAGE_THREAD_ID: ''
+    #   TG_PARSE_MODE: ''
+    #   TG_SERVER: 'https://api.telegram.org'
     #   TIMEZONE: 'UTC'
     volumes:
       - vaultwarden-data:/bitwarden/data/

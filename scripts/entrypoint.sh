@@ -40,6 +40,24 @@ if [[ "$1" == "ping" ]]; then
     exit 0
 fi
 
+# telegram test
+if [[ "$1" == "tg" ]]; then
+    export_env_file
+    init_env_display
+    init_env_tg
+
+    TG_ENABLE="TRUE"
+    TG_DEBUG="TRUE"
+
+    if [[ -n "$2" ]]; then
+        TG_CHAT_ID="$2"
+    fi
+
+    send_tg "${DISPLAY_NAME} Backup Test" "Your Telegram configuration looks correct."
+
+    exit 0
+fi
+
 # restore
 if [[ "$1" == "restore" ]]; then
     . /app/restore.sh
